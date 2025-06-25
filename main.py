@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from tools import pptx_to_png, pdf_to_png, pptx_to_pdf,m4a_to_mp3
-
+from tools.translate_srt import translate_srt
 
 st.set_page_config(page_title="Tools-on-StreamlitGUI", layout="centered")
 
@@ -283,6 +283,57 @@ def m4a_to_mp3_page():
         if os.path.exists(temp_m4a_path):
             os.remove(temp_m4a_path)
 
+def translate_srt_page():
+    st.header("SRT Subtitle Translator")
+
+    uploaded_file = st.file_uploader("Upload an SRT file", type=["srt"])
+    target_lang = st.text_input("Target language code (e.g., fr, es, de, zh)", value="zh")
+    model = st.text_input("OpenAI model (leave blank for default)", value="")
+    workers = st.number_input("Number of concurrent workers", min_value=1, max_value=50, value=5)
+
+    default_output_folder = os.path.join(os.getcwd(), "output")
+    if "srt_output_folder" not in st.session_state:
+        st.session_state["srt_output_folder"] = default_output_folder
+
+    if st.button("Use Current Directory", key="srt_use_current_dir"):
+        st.session_state["srt_output_folder"] = default_output_folder
+
+    output_folder = st.text_input(
+        label="Paste or type the output folder path:",
+        value=st.session_state["srt_output_folder"],
+        help="Paste the folder path here. You can click 'Use Current Directory' to autofill with the default output folder (./output in current directory).",
+        key="srt_output_folder_widget",
+    )
+
+    if uploaded_file is not None:
+        temp_srt_path = os.path.join("temp_uploaded.srt")
+        with open(temp_srt_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        srt_name = uploaded_file.name
+        srt_base_name = os.path.splitext(os.path.basename(srt_name))[0]
+        out_folder = output_folder if output_folder.strip() and os.path.isdir(output_folder) else default_output_folder
+        if not os.path.isdir(out_folder):
+            os.makedirs(out_folder, exist_ok=True)
+        output_srt_path = os.path.join(out_folder, f"{srt_base_name}_{target_lang}.srt")
+
+        if st.button("Translate SRT"):
+            try:
+                translate_srt(temp_srt_path, output_srt_path, target_lang, model or None, workers)
+                st.success(f"Translation complete. Output written to {output_srt_path}")
+                with open(output_srt_path, "rb") as srt_f:
+                    st.download_button(
+                        label=f"Download {os.path.basename(output_srt_path)}",
+                        data=srt_f,
+                        file_name=os.path.basename(output_srt_path),
+                        mime="text/plain",
+                    )
+            except Exception as e:
+                st.error(f"Translation failed: {e}")
+
+        if os.path.exists(temp_srt_path):
+            os.remove(temp_srt_path)
+
 def home_page():
     st.title("Tools-on-StreamlitGUI")
     st.markdown(
@@ -295,7 +346,9 @@ def home_page():
 # Sidebar navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
-    "Go to", ("Home", "PDF to PNG", "PPTX to PDF", "PPTX to PNG", "M4A to MP3"), index=0
+    "Go to", (
+        "Home", "PDF to PNG", "PPTX to PDF", "PPTX to PNG", "M4A to MP3", "SRT Translator"
+    ), index=0
 )
 
 if page == "Home":
@@ -308,3 +361,5 @@ elif page == "PPTX to PNG":
     pptx_to_png_page()
 elif page == "M4A to MP3":
     m4a_to_mp3_page()
+elif page == "SRT Translator":
+    translate_srt_page()
