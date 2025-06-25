@@ -1,5 +1,14 @@
 # Tools-on-StreamlitGUI
 
+A simple web-based toolset for file conversion, powered by Streamlit.  
+**Convert your files easily in your browser!**
+
+## Features
+
+- **PDF to PNG**: Convert each page of a PDF file into PNG images.
+- **PPTX to PDF**: Convert PowerPoint presentations (`.pptx`) to PDF documents.
+- **PPTX to PNG**: Convert each slide of a PowerPoint presentation into PNG images.
+
 ## Installation
 
 ```bash
@@ -13,3 +22,12 @@ pip install -r requirements.txt
 ```bash
 streamlit run main.py
 ```
+
+## Usage
+
+1. Open your browser to the Streamlit app (usually at `http://localhost:8501`).
+2. Use the sidebar to select a tool.
+3. Upload your file and choose an output folder (or use the default).
+4. Click the convert button and download your results!
+
+---
