@@ -29,6 +29,16 @@ def pdf_to_png_page():
         key="output_folder_widget",
     )
 
+    # DPI input widget
+    dpi = st.number_input(
+        label="DPI (Dots Per Inch)",
+        min_value=50,
+        max_value=600,
+        value=200,
+        step=10,
+        help="Set the DPI (resolution) for the output PNG images. Higher values mean better quality but larger files.",
+    )
+
     # Validate the folder path
     if output_folder.strip():
         if os.path.isdir(output_folder):
@@ -61,7 +71,7 @@ def pdf_to_png_page():
             # Create the output subfolder if it doesn't exist
             if not os.path.isdir(out_folder):
                 os.makedirs(out_folder, exist_ok=True)
-            png_files = pdf_to_png(temp_pdf_path, out_folder)
+            png_files = pdf_to_png(temp_pdf_path, out_folder, dpi=dpi)
 
             st.success(f"Converted {len(png_files)} page(s) to PNG.")
             for png_file in png_files:
