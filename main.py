@@ -4,6 +4,7 @@ from pages import (
     pptx_to_pdf_page,
     pptx_to_png_page,
     m4a_to_mp3_page,
+    mp4_to_mp3_page,
     translate_srt_page,
     home_page,
     chat_llm_page,
@@ -19,6 +20,7 @@ page = st.sidebar.radio(
         "PPTX to PDF",
         "PPTX to PNG",
         "M4A to MP3",
+        "MP4 to MP3",
         "SRT Translator",
         "Chat LLM",
     ),
@@ -35,6 +37,8 @@ elif page == "PPTX to PNG":
     pptx_to_png_page()
 elif page == "M4A to MP3":
     m4a_to_mp3_page()
+elif page == "MP4 to MP3":
+    mp4_to_mp3_page()
 elif page == "SRT Translator":
     translate_srt_page()
 elif page == "Chat LLM":  # <-- Add this

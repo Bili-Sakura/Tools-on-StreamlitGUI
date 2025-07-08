@@ -8,6 +8,8 @@ A simple web-based toolset for file conversion, powered by Streamlit.
 - **PDF to PNG**: Convert each page of a PDF file into PNG images.
 - **PPTX to PDF**: Convert PowerPoint presentations (`.pptx`) to PDF documents.
 - **PPTX to PNG**: Convert each slide of a PowerPoint presentation into PNG images.
+- **M4A to MP3**: Convert audio files from M4A format to MP3.
+- **MP4 to MP3**: Extract the audio from MP4 videos as MP3 files.
 
 ## Installation
 
