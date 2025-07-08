@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from tools import pptx_to_png, pdf_to_png, pptx_to_pdf, m4a_to_mp3
+from tools import pptx_to_png, pdf_to_png, pptx_to_pdf, m4a_to_mp3, mp4_to_mp3
 from tools.translate_srt import translate_srt
 import openai
 from dotenv import load_dotenv
@@ -258,6 +258,56 @@ def m4a_to_mp3_page():
                 st.error(f"Conversion failed: {e}")
         if os.path.exists(temp_m4a_path):
             os.remove(temp_m4a_path)
+
+def mp4_to_mp3_page():
+    st.header("MP4 to MP3 Converter")
+    uploaded_file = st.file_uploader("Upload an MP4 file", type=["mp4"])
+    default_output_folder = os.path.join(os.getcwd(), "output")
+    if "mp4_output_folder" not in st.session_state:
+        st.session_state["mp4_output_folder"] = default_output_folder
+    if st.button("Use Current Directory", key="mp4_use_current_dir"):
+        st.session_state["mp4_output_folder"] = default_output_folder
+    output_folder = st.text_input(
+        label="Paste or type the output folder path:",
+        value=st.session_state["mp4_output_folder"],
+        help="Paste the folder path here. You can click 'Use Current Directory' to autofill with the default output folder (./output in current directory). Leave blank to use the default output directory.",
+        key="mp4_output_folder_widget",
+    )
+    if output_folder.strip():
+        if os.path.isdir(output_folder):
+            st.success(f"Folder exists: {output_folder}")
+        else:
+            st.warning(f"Folder does not exist: {output_folder}")
+    else:
+        st.info(f"No folder selected. Will use the default output directory: {default_output_folder}")
+    if uploaded_file is not None:
+        temp_mp4_path = os.path.join("temp_uploaded.mp4")
+        with open(temp_mp4_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        if st.button("Convert to MP3", key="mp4_convert_button"):
+            base_out_folder = (
+                output_folder if output_folder.strip() and os.path.isdir(output_folder) else default_output_folder
+            )
+            mp4_name = uploaded_file.name
+            mp4_base_name = os.path.splitext(os.path.basename(mp4_name))[0]
+            out_folder = os.path.join(base_out_folder, mp4_base_name)
+            if not os.path.isdir(out_folder):
+                os.makedirs(out_folder, exist_ok=True)
+            mp3_file = os.path.join(out_folder, mp4_base_name + ".mp3")
+            try:
+                result_mp3 = mp4_to_mp3(temp_mp4_path, mp3_file)
+                st.success(f"Converted to MP3: {os.path.basename(result_mp3)}")
+                with open(result_mp3, "rb") as mp3_f:
+                    st.download_button(
+                        label=f"Download {os.path.basename(result_mp3)}",
+                        data=mp3_f,
+                        file_name=os.path.basename(result_mp3),
+                        mime="audio/mpeg",
+                    )
+            except Exception as e:
+                st.error(f"Conversion failed: {e}")
+        if os.path.exists(temp_mp4_path):
+            os.remove(temp_mp4_path)
 
 def translate_srt_page():
     st.header("SRT Subtitle Translator")
