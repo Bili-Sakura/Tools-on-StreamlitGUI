@@ -63,30 +63,38 @@ def translate_text(text, target_lang, model, router="dashscope"):
     return response.choices[0].message.content.strip()
 
 def translate_block(args):
-    block, target_lang, model = args
+    block, target_lang, model, router = args
     parsed = parse_srt_block(block)
     if not parsed:
         return block
     index, time, text_lines = parsed
     text = "\n".join(text_lines)
     if text.strip():
-        translated_text = translate_text(text, target_lang, model=model)
+        translated_text = translate_text(text, target_lang, model=model, router=router)
         translated_text_lines = translated_text.splitlines() or [translated_text]
     else:
         translated_text_lines = text_lines
     translated_block = build_srt_block(index, time, translated_text_lines)
     return translated_block
 
-def translate_srt(input_path, output_path, target_lang, model=None, workers=15):
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    if not openai.api_key:
-        raise RuntimeError("Error: OPENAI_API_KEY not found in environment variables.")
+def translate_srt(input_path, output_path, target_lang, model=None, workers=15, router="dashscope"):
+    # Check API keys based on router
+    if router == "openai":
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        if not openai.api_key:
+            raise RuntimeError("Error: OPENAI_API_KEY not found in environment variables.")
+        if not model:
+            model = os.getenv("MODEL") or "gpt-3.5-turbo"
+    else:  # dashscope
+        dashscope_key = os.getenv("DASHSCOPE_API_KEY")
+        if not dashscope_key:
+            raise RuntimeError("Error: DASHSCOPE_API_KEY not found in environment variables.")
+        if not model:
+            model = os.getenv("MODEL") or "qwen-max"
 
-    if not model:
-        model = os.getenv("MODEL")
     srt_content = read_srt(input_path)
     blocks = parse_srt_blocks(srt_content)
-    block_args = [(block, target_lang, model) for block in blocks]
+    block_args = [(block, target_lang, model, router) for block in blocks]
     translated_blocks = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         for translated_block in executor.map(translate_block, block_args):
@@ -117,6 +125,12 @@ if __name__ == "__main__":
         default=15,
         help="Number of concurrent workers for translation (default: 15)",
     )
+    parser.add_argument(
+        "--provider",
+        choices=["openai", "dashscope"],
+        default="dashscope",
+        help="Translation provider: openai or dashscope (default: dashscope)",
+    )
     args = parser.parse_args()
-    translate_srt(args.input, args.output, args.target_lang, args.model, args.workers)
+    translate_srt(args.input, args.output, args.target_lang, args.model, args.workers, args.provider)
     print(f"Translation complete. Output written to {args.output}")

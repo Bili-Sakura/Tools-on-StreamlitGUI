@@ -313,7 +313,21 @@ def translate_srt_page():
     st.header("SRT Subtitle Translator")
     uploaded_file = st.file_uploader("Upload an SRT file", type=["srt"])
     target_lang = st.text_input("Target language code (e.g., fr, es, de, zh)", value="zh")
-    model = st.text_input("OpenAI model (leave blank for default)", value="")
+    
+    # Provider selection
+    provider = st.selectbox(
+        "Translation Provider",
+        options=["Aliyun (DashScope)", "OpenAI"],
+        index=0,
+        help="Choose between Aliyun DashScope or OpenAI for translation"
+    )
+    
+    # Model selection based on provider
+    if provider == "OpenAI":
+        model = st.text_input("OpenAI model (leave blank for default)", value="gpt-3.5-turbo", help="e.g., gpt-3.5-turbo, gpt-4")
+    else:
+        model = st.text_input("Aliyun model (leave blank for default)", value="qwen-max", help="e.g., qwen-max, qwen-plus")
+    
     workers = st.number_input("Number of concurrent workers", min_value=1, max_value=50, value=5)
     default_output_folder = os.path.join(os.getcwd(), "output")
     if "srt_output_folder" not in st.session_state:
@@ -338,7 +352,9 @@ def translate_srt_page():
         output_srt_path = os.path.join(out_folder, f"{srt_base_name}_{target_lang}.srt")
         if st.button("Translate SRT"):
             try:
-                translate_srt(temp_srt_path, output_srt_path, target_lang, model or None, workers)
+                # Determine router based on provider selection
+                router = "openai" if provider == "OpenAI" else "dashscope"
+                translate_srt(temp_srt_path, output_srt_path, target_lang, model or None, workers, router)
                 st.success(f"Translation complete. Output written to {output_srt_path}")
                 with open(output_srt_path, "rb") as srt_f:
                     st.download_button(
