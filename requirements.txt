@@ -6,3 +6,5 @@ openai
 python-dotenv
 streamlit_antd_components
 pywin32
+pydub
+srt
