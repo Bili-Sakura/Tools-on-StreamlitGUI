@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from tools import pptx_to_png, pdf_to_png, pptx_to_pdf, m4a_to_mp3, mp4_to_mp3
+from tools import pptx_to_png, pdf_to_png, pptx_to_pdf, m4a_to_mp3, mp4_to_mp3, audio_to_subtitle
 from tools.translate_srt import translate_srt
 import openai
 from dotenv import load_dotenv
@@ -351,6 +351,121 @@ def translate_srt_page():
                 st.error(f"Translation failed: {e}")
         if os.path.exists(temp_srt_path):
             os.remove(temp_srt_path)
+
+def audio_to_subtitle_page():
+    st.header("Audio/Video to Subtitle Converter")
+    st.write("Convert audio or video files to SRT subtitle format using OpenAI Whisper API")
+    
+    # File uploader for audio/video files
+    uploaded_file = st.file_uploader(
+        "Upload an audio or video file", 
+        type=["mp3", "mp4", "m4a", "wav", "flac", "aac", "avi", "mov", "mkv", "webm"]
+    )
+    
+    # Output folder selection
+    default_output_folder = os.path.join(os.getcwd(), "output")
+    if "subtitle_output_folder" not in st.session_state:
+        st.session_state["subtitle_output_folder"] = default_output_folder
+    
+    if st.button("Use Current Directory", key="subtitle_use_current_dir"):
+        st.session_state["subtitle_output_folder"] = default_output_folder
+    
+    output_folder = st.text_input(
+        label="Paste or type the output folder path:",
+        value=st.session_state["subtitle_output_folder"],
+        help="Paste the folder path here. You can click 'Use Current Directory' to autofill with the default output folder (./output in current directory). Leave blank to use the default output directory.",
+        key="subtitle_output_folder_widget",
+    )
+    
+    if output_folder.strip():
+        if os.path.isdir(output_folder):
+            st.success(f"Folder exists: {output_folder}")
+        else:
+            st.warning(f"Folder does not exist: {output_folder}")
+    else:
+        st.info(f"No folder selected. Will use the default output directory: {default_output_folder}")
+    
+    # Configuration options
+    st.subheader("Configuration")
+    chunk_length_minutes = st.slider(
+        "Audio chunk length (minutes)", 
+        min_value=1, 
+        max_value=30, 
+        value=10,
+        help="Longer chunks may be more accurate but will take longer to process and may hit API limits"
+    )
+    
+    # OpenAI API Key input (optional)
+    api_key = st.text_input(
+        "OpenAI API Key (optional)", 
+        type="password",
+        help="If not provided, will use OPENAI_API_KEY environment variable"
+    )
+    
+    if uploaded_file is not None:
+        # Get file extension to create appropriate temp file
+        file_extension = os.path.splitext(uploaded_file.name)[1]
+        temp_file_path = f"temp_uploaded{file_extension}"
+        
+        # Save uploaded file temporarily
+        with open(temp_file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        st.info(f"File uploaded: {uploaded_file.name} ({uploaded_file.size} bytes)")
+        
+        if st.button("Generate Subtitles", key="subtitle_convert_button"):
+            with st.spinner("Converting audio/video to subtitles... This may take a while for long files."):
+                try:
+                    # Determine output folder
+                    base_out_folder = (
+                        output_folder if output_folder.strip() and os.path.isdir(output_folder) 
+                        else default_output_folder
+                    )
+                    
+                    # Create output folder structure
+                    file_base_name = os.path.splitext(os.path.basename(uploaded_file.name))[0]
+                    out_folder = os.path.join(base_out_folder, file_base_name)
+                    if not os.path.isdir(out_folder):
+                        os.makedirs(out_folder, exist_ok=True)
+                    
+                    # Convert to subtitles
+                    chunk_length_ms = chunk_length_minutes * 60 * 1000
+                    srt_content = audio_to_subtitle(
+                        temp_file_path, 
+                        chunk_length_ms=chunk_length_ms,
+                        api_key=api_key if api_key.strip() else None
+                    )
+                    
+                    # Save SRT file
+                    srt_file_path = os.path.join(out_folder, file_base_name + ".srt")
+                    with open(srt_file_path, "w", encoding="utf-8") as f:
+                        f.write(srt_content)
+                    
+                    st.success(f"Subtitles generated successfully: {os.path.basename(srt_file_path)}")
+                    
+                    # Display preview of subtitles
+                    st.subheader("Subtitle Preview")
+                    lines = srt_content.split('\n')
+                    preview_lines = lines[:min(20, len(lines))]  # Show first 20 lines
+                    st.text('\n'.join(preview_lines))
+                    if len(lines) > 20:
+                        st.info(f"Showing first 20 lines. Full file has {len(lines)} lines.")
+                    
+                    # Download button
+                    st.download_button(
+                        label=f"Download {os.path.basename(srt_file_path)}",
+                        data=srt_content,
+                        file_name=os.path.basename(srt_file_path),
+                        mime="text/plain",
+                    )
+                    
+                except Exception as e:
+                    st.error(f"Subtitle generation failed: {e}")
+                    st.error("Please check your OpenAI API key and try again.")
+        
+        # Clean up temporary file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 def home_page():
     st.title("Tools-on-StreamlitGUI")
