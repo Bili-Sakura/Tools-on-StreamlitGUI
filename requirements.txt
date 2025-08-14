@@ -1,10 +1,10 @@
 pdf2image
 Pillow
 streamlit
-poppler-utils
 openai
 python-dotenv
 streamlit_antd_components
-pywin32
 pydub
 srt
+python-pptx
+comtypes; platform_system=="Windows"
