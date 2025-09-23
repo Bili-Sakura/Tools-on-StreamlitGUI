@@ -5,6 +5,7 @@ import zipfile
 from io import BytesIO
 from tools import pptx_to_png, pdf_to_png, pptx_to_pdf, m4a_to_mp3, mp4_to_mp3, audio_to_subtitle
 from tools.translate_srt import translate_srt
+from tools.resentence_srt import resegment_srt
 import openai
 from dotenv import load_dotenv
 import re
@@ -321,7 +322,7 @@ def translate_srt_page():
     
     # Model selection based on provider
     if provider == "OpenAI":
-        model = st.text_input("OpenAI model (leave blank for default)", value="gpt-3.5-turbo", help="e.g., gpt-3.5-turbo, gpt-4")
+        model = st.text_input("OpenAI model (leave blank for default)", value="gpt-4.1", help="e.g., gpt-4.1, gpt-4o")
     else:
         model = st.text_input("Aliyun model (leave blank for default)", value="qwen-max", help="e.g., qwen-max, qwen-plus")
     
@@ -443,6 +444,45 @@ def audio_to_subtitle_page():
                     # Clean up temporary file
                     if os.path.exists(temp_file_path):
                         os.remove(temp_file_path)
+
+def resegment_srt_page():
+    st.header("SRT Resegmentation (Max characters per segment)")
+    uploaded_file = st.file_uploader("Upload an SRT file", type=["srt"], key="resegment_srt_uploader")
+    max_chars = st.number_input("Maximum characters per segment", min_value=10, max_value=500, value=125, step=5)
+
+    if uploaded_file is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".srt") as temp_srt:
+            temp_srt.write(uploaded_file.getbuffer())
+            temp_srt_path = temp_srt.name
+
+        if st.button("Resegment SRT", key="resegment_srt_button"):
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".srt") as temp_output:
+                    output_srt_path = temp_output.name
+
+                resegment_srt(temp_srt_path, output_srt_path, max_chars=int(max_chars))
+
+                st.success("Resegmentation complete!")
+
+                with open(output_srt_path, "r", encoding="utf-8") as srt_f:
+                    result_content = srt_f.read()
+
+                srt_base_name = os.path.splitext(uploaded_file.name)[0]
+                st.download_button(
+                    label=f"Download {srt_base_name}_resentenced.srt",
+                    data=result_content,
+                    file_name=f"{srt_base_name}_resentenced.srt",
+                    mime="text/plain",
+                )
+
+                if os.path.exists(output_srt_path):
+                    os.remove(output_srt_path)
+
+            except Exception as e:
+                st.error(f"Resegmentation failed: {e}")
+            finally:
+                if os.path.exists(temp_srt_path):
+                    os.remove(temp_srt_path)
 
 def home_page():
     st.title("Tools-on-StreamlitGUI")

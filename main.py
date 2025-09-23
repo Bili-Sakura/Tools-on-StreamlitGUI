@@ -9,6 +9,7 @@ from pages import (
     home_page,
     chat_llm_page,
     audio_to_subtitle_page,
+    resegment_srt_page,
 )
 
 # Sidebar navigation
@@ -25,6 +26,7 @@ page = st.sidebar.radio(
         "Audio/Video to Subtitles",
         "SRT Translator",
         "Chat LLM",
+        "SRT Resegmentation",
     ),
     index=0,
 )
@@ -47,3 +49,5 @@ elif page == "SRT Translator":
     translate_srt_page()
 elif page == "Chat LLM":  # <-- Add this
     chat_llm_page()
+elif page == "SRT Resegmentation":
+    resegment_srt_page()

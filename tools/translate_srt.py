@@ -39,28 +39,80 @@ def translate_text(text, target_lang, model, router="dashscope"):
             api_key=os.getenv("DASHSCOPE_API_KEY"),
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
+        prompt = (
+            f"Translate the following subtitle text to {target_lang}. "
+            "Do not translate timestamps or numbers. Only translate the spoken text. "
+            "Return only the translated text, no explanations or formatting.\n\n"
+            f"{text}"
+        )
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that translates subtitles.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1024,
+        )
+        return response.choices[0].message.content.strip()
     else:
+        # OpenAI branch; support newer GPT models like gpt-4.1 via Responses API
         from openai import OpenAI
         client = OpenAI()
-    prompt = (
-        f"Translate the following subtitle text to {target_lang}. "
-        "Do not translate timestamps or numbers. Only translate the spoken text. "
-        "Return only the translated text, no explanations or formatting.\n\n"
-        f"{text}"
-    )
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful assistant that translates subtitles.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,
-        max_tokens=1024,
-    )
-    return response.choices[0].message.content.strip()
+        prompt = (
+            f"Translate the following subtitle text to {target_lang}. "
+            "Do not translate timestamps or numbers. Only translate the spoken text. "
+            "Return only the translated text, no explanations or formatting.\n\n"
+            f"{text}"
+        )
+        try:
+            # Use Responses API for newer models (e.g., gpt-4.1, gpt-4o)
+            if model and (model.startswith("gpt-4.1") or model.startswith("gpt-4o")):
+                response = client.responses.create(
+                    model=model,
+                    input=prompt,
+                    instructions="You are a helpful assistant that translates subtitles.",
+                    temperature=0.3,
+                    max_output_tokens=1024,
+                )
+                # Prefer helper if available
+                try:
+                    return response.output_text.strip()
+                except Exception:
+                    # Fallback parsing if helper is unavailable
+                    try:
+                        segments = []
+                        if hasattr(response, "output") and response.output:
+                            for content_item in response.output[0].content:
+                                text_val = getattr(content_item, "text", None)
+                                if text_val:
+                                    segments.append(text_val)
+                        if segments:
+                            return "\n".join(segments).strip()
+                    except Exception:
+                        pass
+                    return str(response).strip()
+            else:
+                # Backward compatibility: use Chat Completions for older models
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a helpful assistant that translates subtitles.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.3,
+                    max_tokens=1024,
+                )
+                return response.choices[0].message.content.strip()
+        except Exception as e:
+            # Last-resort fallback to ensure we return something
+            return str(e)
 
 def translate_block(args):
     block, target_lang, model, router = args
@@ -84,7 +136,7 @@ def translate_srt(input_path, output_path, target_lang, model=None, workers=15, 
         if not openai.api_key:
             raise RuntimeError("Error: OPENAI_API_KEY not found in environment variables.")
         if not model:
-            model = os.getenv("MODEL") or "gpt-3.5-turbo"
+            model = os.getenv("MODEL") or "gpt-4.1"
     else:  # dashscope
         dashscope_key = os.getenv("DASHSCOPE_API_KEY")
         if not dashscope_key:
