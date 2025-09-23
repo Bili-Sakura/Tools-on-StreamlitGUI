@@ -29,6 +29,7 @@ This app is ready for deployment on Streamlit Cloud! Simply fork this repository
 5. Deploy!
 
 For features requiring API keys (Chat LLM, Audio to Subtitles, SRT Translator):
+
 - Add your API keys in the app's "Secrets" section in Streamlit Cloud dashboard
 - Format: `DASHSCOPE_API_KEY = "your_key_here"` or `OPENAI_API_KEY = "your_key_here"`
 
@@ -61,11 +62,37 @@ streamlit run main.py
 - Audio conversion uses `ffmpeg` (automatically installed via `packages.txt`)
 - PPTX to PDF uses `libreoffice` (automatically installed via `packages.txt`)
 
-## API Keys (Optional Features)
+## API Keys and Environment (.env)
 
-Some features require API keys:
-- **Chat LLM**: Requires `DASHSCOPE_API_KEY` from Aliyun
-- **Audio to Subtitles**: Requires `OPENAI_API_KEY` from OpenAI
-- **SRT Translator**: Requires either `DASHSCOPE_API_KEY` or `OPENAI_API_KEY`
+Create a `.env` in the project root or set environment variables:
+
+- **Chat LLM (Aliyun)**: `DASHSCOPE_API_KEY`
+- **Audio/Video to Subtitles (OpenAI Whisper)**: `OPENAI_API_KEY`
+- **SRT Translator**: `DASHSCOPE_API_KEY` (Aliyun) or `OPENAI_API_KEY` (OpenAI)
+
+Example `.env`:
+
+```env
+# Aliyun DashScope (Chat LLM, SRT Translator)
+DASHSCOPE_API_KEY=
+
+# OpenAI (Whisper, SRT Translator)
+OPENAI_API_KEY=
+
+# Optional: override model for both providers (leave unset to use provider defaults)
+# For OpenAI default is gpt-4.1; for DashScope default is qwen-max
+# MODEL=
+```
+
+Defaults:
+
+- OpenAI provider default model: `gpt-4.1` (uses Responses API)
+- Aliyun DashScope default model: `qwen-max`
+
+CLI example for SRT translation:
+
+```sh
+python tools/translate_srt.py input.srt output.srt --target-lang zh --provider openai --model gpt-4.1 --workers 5
+```
 
 ---
