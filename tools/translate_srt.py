@@ -58,7 +58,42 @@ def translate_text(text, target_lang, model, router="dashscope"):
             max_tokens=1024,
         )
         return response.choices[0].message.content.strip()
-    else:
+    elif router == "openrouter":
+        # OpenRouter branch using OpenAI SDK with OpenRouter base_url
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            base_url="https://openrouter.ai/api/v1",
+        )
+        prompt = (
+            f"Translate the following subtitle text to {target_lang}. "
+            "Do not translate timestamps or numbers. Only translate the spoken text. "
+            "Return only the translated text, no explanations or formatting.\n\n"
+            f"{text}"
+        )
+        # Optional attribution headers
+        extra_headers = {}
+        referer = os.getenv("OPENROUTER_SITE_URL")
+        app_title = os.getenv("OPENROUTER_APP_TITLE")
+        if referer:
+            extra_headers["HTTP-Referer"] = referer
+        if app_title:
+            extra_headers["X-Title"] = app_title
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that translates subtitles.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1024,
+            extra_headers=extra_headers,
+        )
+        return response.choices[0].message.content.strip()
+    elif router == "openai":
         # OpenAI branch; support newer GPT models like gpt-4.1 via Responses API
         from openai import OpenAI
         client = OpenAI()
@@ -113,6 +148,8 @@ def translate_text(text, target_lang, model, router="dashscope"):
         except Exception as e:
             # Last-resort fallback to ensure we return something
             return str(e)
+    else:
+        return f"Unsupported provider: {router}"
 
 def translate_block(args):
     block, target_lang, model, router = args
@@ -137,12 +174,20 @@ def translate_srt(input_path, output_path, target_lang, model=None, workers=15, 
             raise RuntimeError("Error: OPENAI_API_KEY not found in environment variables.")
         if not model:
             model = os.getenv("MODEL") or "gpt-4.1"
-    else:  # dashscope
+    elif router == "openrouter":
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if not openrouter_key:
+            raise RuntimeError("Error: OPENROUTER_API_KEY not found in environment variables.")
+        if not model:
+            model = os.getenv("MODEL") or "openai/gpt-4o"
+    elif router == "dashscope":  # dashscope
         dashscope_key = os.getenv("DASHSCOPE_API_KEY")
         if not dashscope_key:
             raise RuntimeError("Error: DASHSCOPE_API_KEY not found in environment variables.")
         if not model:
             model = os.getenv("MODEL") or "qwen-max"
+    else:
+        raise RuntimeError(f"Error: Unknown provider '{router}'. Expected one of: openai, openrouter, dashscope.")
 
     srt_content = read_srt(input_path)
     blocks = parse_srt_blocks(srt_content)
@@ -179,9 +224,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--provider",
-        choices=["openai", "dashscope"],
+        choices=["openai", "dashscope", "openrouter"],
         default="dashscope",
-        help="Translation provider: openai or dashscope (default: dashscope)",
+        help="Translation provider: openai, dashscope, or openrouter (default: dashscope)",
     )
     args = parser.parse_args()
     translate_srt(args.input, args.output, args.target_lang, args.model, args.workers, args.provider)

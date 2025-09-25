@@ -315,14 +315,16 @@ def translate_srt_page():
     # Provider selection
     provider = st.selectbox(
         "Translation Provider",
-        options=["Aliyun (DashScope)", "OpenAI"],
+        options=["Aliyun (DashScope)", "OpenAI", "OpenRouter"],
         index=0,
-        help="Choose between Aliyun DashScope or OpenAI for translation"
+        help="Choose the translation provider: Aliyun DashScope, OpenAI, or OpenRouter"
     )
     
     # Model selection based on provider
     if provider == "OpenAI":
         model = st.text_input("OpenAI model (leave blank for default)", value="gpt-4.1", help="e.g., gpt-4.1, gpt-4o")
+    elif provider == "OpenRouter":
+        model = st.text_input("OpenRouter model (leave blank for default)", value="openai/gpt-4o", help="e.g., openai/gpt-4o, anthropic/claude-3.5-sonnet")
     else:
         model = st.text_input("Aliyun model (leave blank for default)", value="qwen-max", help="e.g., qwen-max, qwen-plus")
     
@@ -341,7 +343,12 @@ def translate_srt_page():
                     output_srt_path = temp_output.name
                 
                 # Determine router based on provider selection
-                router = "openai" if provider == "OpenAI" else "dashscope"
+                if provider == "OpenAI":
+                    router = "openai"
+                elif provider == "OpenRouter":
+                    router = "openrouter"
+                else:
+                    router = "dashscope"
                 translate_srt(temp_srt_path, output_srt_path, target_lang, model or None, workers, router)
                 
                 st.success(f"Translation complete!")

@@ -15,7 +15,7 @@ This app is ready for deployment on Streamlit Cloud! Simply fork this repository
 - **M4A to MP3**: Convert audio files from M4A format to MP3
 - **MP4 to MP3**: Extract the audio from MP4 videos as MP3 files
 - **Audio/Video to Subtitles**: Generate SRT subtitles using OpenAI Whisper API
-- **SRT Translator**: Translate subtitle files using AI (OpenAI or Aliyun DashScope)
+- **SRT Translator**: Translate subtitle files using AI (OpenAI, Aliyun DashScope, or OpenRouter)
 - **Chat LLM**: Chat interface with Aliyun Bailian models
 
 ## 🌐 Deployment Options
@@ -31,7 +31,7 @@ This app is ready for deployment on Streamlit Cloud! Simply fork this repository
 For features requiring API keys (Chat LLM, Audio to Subtitles, SRT Translator):
 
 - Add your API keys in the app's "Secrets" section in Streamlit Cloud dashboard
-- Format: `DASHSCOPE_API_KEY = "your_key_here"` or `OPENAI_API_KEY = "your_key_here"`
+- Format: `DASHSCOPE_API_KEY = "your_key_here"` or `OPENAI_API_KEY = "your_key_here"` or `OPENROUTER_API_KEY = "your_key_here"`
 
 ### Local Installation
 
@@ -68,7 +68,12 @@ Create a `.env` in the project root or set environment variables:
 
 - **Chat LLM (Aliyun)**: `DASHSCOPE_API_KEY`
 - **Audio/Video to Subtitles (OpenAI Whisper)**: `OPENAI_API_KEY`
-- **SRT Translator**: `DASHSCOPE_API_KEY` (Aliyun) or `OPENAI_API_KEY` (OpenAI)
+- **SRT Translator**: `DASHSCOPE_API_KEY` (Aliyun) or `OPENAI_API_KEY` (OpenAI) or `OPENROUTER_API_KEY` (OpenRouter)
+
+Optional attribution headers for OpenRouter (used for leaderboard attribution):
+
+- `OPENROUTER_SITE_URL` (maps to `HTTP-Referer`)
+- `OPENROUTER_APP_TITLE` (maps to `X-Title`)
 
 Example `.env`:
 
@@ -79,8 +84,14 @@ DASHSCOPE_API_KEY=
 # OpenAI (Whisper, SRT Translator)
 OPENAI_API_KEY=
 
-# Optional: override model for both providers (leave unset to use provider defaults)
-# For OpenAI default is gpt-4.1; for DashScope default is qwen-max
+# OpenRouter (SRT Translator)
+OPENROUTER_API_KEY=
+# Optional OpenRouter attribution
+OPENROUTER_SITE_URL=
+OPENROUTER_APP_TITLE=
+
+# Optional: override model for all providers (leave unset to use provider defaults)
+# For OpenAI default is gpt-4.1; for DashScope default is qwen-max; for OpenRouter default is openai/gpt-4o
 # MODEL=
 ```
 
@@ -88,11 +99,19 @@ Defaults:
 
 - OpenAI provider default model: `gpt-4.1` (uses Responses API)
 - Aliyun DashScope default model: `qwen-max`
+- OpenRouter default model: `openai/gpt-4o`
 
 CLI example for SRT translation:
 
 ```sh
+# OpenAI
 python tools/translate_srt.py input.srt output.srt --target-lang zh --provider openai --model gpt-4.1 --workers 5
+
+# OpenRouter
+python tools/translate_srt.py input.srt output.srt --target-lang zh --provider openrouter --model openai/gpt-4o --workers 5
+
+# DashScope
+python tools/translate_srt.py input.srt output.srt --target-lang zh --provider dashscope --model qwen-max --workers 5
 ```
 
 ---
