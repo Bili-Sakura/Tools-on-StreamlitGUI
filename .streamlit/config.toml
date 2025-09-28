@@ -1,6 +1,6 @@
 [server]
 headless = true
-port = $PORT
+port = 20250
 enableCORS = false
 enableXsrfProtection = false
 

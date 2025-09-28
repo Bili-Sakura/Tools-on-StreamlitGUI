@@ -34,7 +34,6 @@ def build_srt_block(index, time, text_lines):
 def translate_text(text, target_lang, model, router="dashscope"):
     if router == "dashscope":
         from openai import OpenAI
-        import os
         client = OpenAI(
             api_key=os.getenv("DASHSCOPE_API_KEY"),
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
