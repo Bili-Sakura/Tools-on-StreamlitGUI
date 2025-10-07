@@ -1,11 +1,13 @@
 [server]
 headless = true
-port = 20250
+port = 8501
 enableCORS = false
 enableXsrfProtection = false
+maxUploadSize = 4096
 
 [browser]
 gatherUsageStats = false
+serverAddress = "localhost"
 
 [theme]
 primaryColor = "#FF6B6B"
