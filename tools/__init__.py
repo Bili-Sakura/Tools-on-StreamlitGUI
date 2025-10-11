@@ -4,3 +4,4 @@ from .pptx_to_png import pptx_to_png
 from .m4a_to_mp3 import m4a_to_mp3
 from .mp4_to_mp3 import mp4_to_mp3
 from .audio_to_subtitle import audio_to_subtitle
+from .srt_processor import translate_srt, resegment_srt, process_srt_file

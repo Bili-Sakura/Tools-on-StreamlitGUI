@@ -5,11 +5,10 @@ from pages import (
     pptx_to_png_page,
     m4a_to_mp3_page,
     mp4_to_mp3_page,
-    translate_srt_page,
     home_page,
     chat_llm_page,
     audio_to_subtitle_page,
-    resegment_srt_page,
+    combined_srt_page,
 )
 
 # Sidebar navigation
@@ -24,9 +23,8 @@ page = st.sidebar.radio(
         "M4A to MP3",
         "MP4 to MP3",
         "Audio/Video to Subtitles",
-        "SRT Translator",
+        "SRT Processing",
         "Chat LLM",
-        "SRT Resegmentation",
     ),
     index=0,
 )
@@ -45,9 +43,7 @@ elif page == "MP4 to MP3":
     mp4_to_mp3_page()
 elif page == "Audio/Video to Subtitles":
     audio_to_subtitle_page()
-elif page == "SRT Translator":
-    translate_srt_page()
-elif page == "Chat LLM":  # <-- Add this
+elif page == "SRT Processing":
+    combined_srt_page()
+elif page == "Chat LLM":
     chat_llm_page()
-elif page == "SRT Resegmentation":
-    resegment_srt_page()
