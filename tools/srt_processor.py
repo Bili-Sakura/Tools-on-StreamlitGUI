@@ -318,8 +318,9 @@ def translate_srt(
     model: Optional[str] = None,
     workers: int = 15,
     router: str = "dashscope",
+    max_chars: int = 125,
 ) -> str:
-    """Translate SRT file using specified provider."""
+    """Translate SRT file using specified provider with resegmentation."""
     # Check API keys based on router
     if router == "openai":
         api_key = os.getenv("OPENAI_API_KEY")
@@ -350,9 +351,13 @@ def translate_srt(
             f"Error: Unknown provider '{router}'. Expected one of: openai, openrouter, dashscope."
         )
 
+    # First resegment the SRT to get optimal chunks for translation
     srt_content = read_srt(input_path)
-    blocks = re.split(r"\n\s*\n", srt_content.strip(), flags=re.MULTILINE)
-    block_args = [(block, target_lang, model, router) for block in blocks]
+    parsed_blocks = parse_srt_blocks(srt_content)
+    resegmented_blocks = resegment_blocks(parsed_blocks, max_chars)
+
+    # Now translate the resegmented blocks
+    block_args = [(block, target_lang, model, router) for block in resegmented_blocks]
     translated_blocks = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         for translated_block in executor.map(translate_block, block_args):
@@ -510,14 +515,16 @@ def process_srt_file(
         if not target_lang:
             raise ValueError("target_lang is required for translation")
         return translate_srt(
-            input_path, output_path, target_lang, model, workers, router
+            input_path, output_path, target_lang, model, workers, router, max_chars
         )
     elif operation == "both":
         if not target_lang:
             raise ValueError("target_lang is required for translation")
-        # First translate, then resegment
+        # First translate (which now includes resegmentation), then resegment again
         temp_path = output_path + ".temp"
-        translate_srt(input_path, temp_path, target_lang, model, workers, router)
+        translate_srt(
+            input_path, temp_path, target_lang, model, workers, router, max_chars
+        )
         result = resegment_srt(temp_path, output_path, max_chars)
         # Clean up temp file
         if os.path.exists(temp_path):
@@ -537,7 +544,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Unified SRT processing tool for resegmentation and translation."
+        description="Unified SRT processing tool for resegmentation and translation. Translation automatically includes resegmentation for optimal chunk sizes."
     )
     parser.add_argument("input", help="Input SRT file path")
     parser.add_argument("output", help="Output SRT file path")

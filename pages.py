@@ -474,6 +474,11 @@ def combined_srt_page():
         workers = st.number_input(
             "Number of concurrent workers", min_value=1, max_value=50, value=5
         )
+
+        # Show info about automatic resegmentation
+        st.info(
+            "ℹ️ Translation automatically includes resegmentation for optimal chunk sizes."
+        )
     else:
         # Default values when translation is not needed
         target_lang = None
@@ -481,8 +486,8 @@ def combined_srt_page():
         model = None
         workers = 5
 
-    # Resegmentation settings (only show if resegmentation is needed)
-    if operation_value in ["resegment", "both"]:
+    # Resegmentation settings (show for resegment and translate operations)
+    if operation_value in ["resegment", "translate", "both"]:
         st.subheader("Resegmentation Settings")
         max_chars = st.number_input(
             "Maximum characters per segment",
@@ -491,6 +496,10 @@ def combined_srt_page():
             value=125,
             step=5,
         )
+        if operation_value == "translate":
+            st.info(
+                "ℹ️ This setting controls how the SRT is resegmented before translation."
+            )
     else:
         # Default value when resegmentation is not needed
         max_chars = 125
